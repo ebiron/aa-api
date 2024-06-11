@@ -121,10 +121,11 @@ class AnadoluAgency implements AnadoluAgencyInterface
 	{
 		$value = implode(',', $value);
 		if($type == "search")
-			$this->addHeader("search_string", $value);
+			$this->addPostParam("search_string", $value);
 		else
-			$this->addHeader("filter_" . $type, $value);
-
+			$this->addPostParam("filter_" . $type, $value);
+		
+ 
 		return $this;
 	}
 
@@ -139,17 +140,31 @@ class AnadoluAgency implements AnadoluAgencyInterface
 	{
 		if(is_null($offset))
 		{
-			$this->addHeader("limit", $limit);
-			$this->addHeader("offset", 0);
+			$this->addPostParam("limit", $limit);
+			$this->addPostParam("offset", 0);
 		}
 		else
 		{
-			$this->addHeader("limit", $offset);
-			$this->addHeader("offset", $limit);
+			$this->addPostParam("limit", $offset);
+			$this->addPostParam("offset", $limit);
 		}
 
 		return $this;
 	}
+	
+	public function addPostParam($key, $value = null)
+	{
+		if (is_array($key)) {
+			foreach ($key as $k => $v) {
+				$this->postParams[$k] = $v;
+			}
+		} else {
+			$this->postParams[$key] = $value;
+		}
+
+		return $this;
+	}
+
 
 	/**
 	 * API Discover request.
@@ -263,7 +278,7 @@ class AnadoluAgency implements AnadoluAgencyInterface
  	 */
 	protected function post($url)
 	{
-		return $this->request("POST", $url);
+    return $this->request("POST", $url, ['form_params' => $this->postParams]);
 	}
 
 	/**
@@ -273,31 +288,43 @@ class AnadoluAgency implements AnadoluAgencyInterface
 	 * @param  string  $url
 	 * @return  json|\GuzzleHttp\Psr7\Response
 	 */
-	protected function request($method, $url)
+	protected function request($method, $url, $options = [])
 	{
-		$this->response = $this->client->request($method, $url, [
+		$defaultOptions = [
 			'auth' => $this->auth,
-			'headers' => $this->headers
-		]);
+			'headers' => $this->headers,
+		];
+
+		// Yalnızca POST isteklerinde Content-Type ekleyin ve $options doluysa ekleyin
+		if ($method === 'POST' && !empty($options)) {
+			$defaultOptions['headers']['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+		}
+
+		// Kullanıcı tarafından sağlanan seçenekleri birleştirin
+		$options = array_merge($defaultOptions, $options);
+
+		// Guzzle istemcisine isteği gönderin
+		$this->response = $this->client->request($method, $url, $options);
 		$this->headers = null;
 		$this->attr = null;
 
-		if(stripos($this->response->getHeader("Content-Type")[0], "application/json", 0) === 0)
+		// Yanıtı işleyin
+		if (stripos($this->response->getHeader("Content-Type")[0], "application/json", 0) === 0) {
 			return $this->response->getBody()->getContents();
-
-		elseif($this->response->hasHeader("Content-Disposition"))
-		{
+		} elseif ($this->response->hasHeader("Content-Disposition")) {
 			$disposition = $this->response->getHeader("Content-Disposition")[0];
 			$this->attr["filename"] = explode('=', $disposition)[1];
 			$this->attr["data"] = (string) $this->response->getBody();
 
-			return json_encode(
-				[ "response" => ["success" => true], "data" => [ "file" => $this->attr["filename"] ] ]
-			);
+			return json_encode([
+				"response" => ["success" => true],
+				"data" => ["file" => $this->attr["filename"]]
+			]);
 		}
 
 		return $this->response;
 	}
+
 
 	/**
 	 * Time formatting.
