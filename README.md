@@ -9,6 +9,8 @@
 ```
 Anadolu Agency (Anadolu Ajansı) API Client for PHP
 
+(Orjinal Kodlardaki çalışmayan filter ve limit fonksiyonları güncellendi)
+
 [![Total Downloads](https://poser.pugx.org/izniburak/aa-api/d/total.svg)](https://packagist.org/packages/izniburak/aa-api)
 [![Latest Stable Version](https://poser.pugx.org/izniburak/aa-api/v/stable.svg)](https://packagist.org/packages/izniburak/aa-api)
 [![Latest Unstable Version](https://poser.pugx.org/izniburak/aa-api/v/unstable.svg)](https://packagist.org/packages/izniburak/aa-api)
